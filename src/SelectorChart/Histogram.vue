@@ -13,7 +13,17 @@
 export default {
   components: {},
 
-  props: ["signals", "selection"],
+  props: {
+    signals: {
+      default: null,
+    },
+    selection: {
+      default: {
+        from: null,
+        to: null,
+      },
+    },
+  },
 
   emits: ["update:chartArea", "update:selection"],
 
@@ -41,18 +51,40 @@ export default {
     let initDataset = this.signals[0].histogramOverall;
     this.categories = initDataset.length;
     this.init(initDataset);
+    this.signals.forEach((signal) => {
+      this.addSignal(signal);
+    });
+  },
 
-    this.addSignal(this.signals[0], "gray");
-    this.addSignal(this.signals[1], "green");
-    this.addSignal(this.signals[2], "red");
+  watch: {
+    selection(val) {
+      //Set new line position
+      this.chartOptions.plugins.annotation.annotations["from"].xMin =
+        val.from - 0.5;
+      this.chartOptions.plugins.annotation.annotations["from"].xMax =
+        val.from - 0.5;
+      this.chartOptions.plugins.annotation.annotations["to"].xMin =
+        val.to - 0.5;
+      this.chartOptions.plugins.annotation.annotations["to"].xMax =
+        val.to - 0.5;
+
+      //Update filler box
+      this.chartOptions.plugins.annotation.annotations.filler.xMin =
+        val.from - 0.5;
+      this.chartOptions.plugins.annotation.annotations.filler.xMax =
+        val.to - 0.5;
+
+      //Update chart
+      this.$refs[this.id].chartJSState.chart.update("none");
+    },
   },
 
   methods: {
-    addSignal(data, color = "gray") {
+    addSignal(data) {
       this.chartData.datasets.push({
         label: data.id,
         data: data.histogramOverall.map((e) => e.count),
-        backgroundColor: this.colors(color, 0.6),
+        backgroundColor: this.colors(this.chartData.datasets.length, "99"),
         clip: 0,
         xAxisID: "x",
         yAxisID: "y",
@@ -84,6 +116,7 @@ export default {
               offset: true,
               display: true,
               drawTicks: false,
+              color: "#f1f1f1",
             },
             title: {
               display: false,
@@ -122,7 +155,6 @@ export default {
         plugins: {
           legend: {
             display: true,
-            reverse: true,
           },
           annotation: {
             annotations: {
@@ -130,16 +162,16 @@ export default {
                 type: "line",
                 xMin: this.selection.from - 0.5,
                 xMax: this.selection.from - 0.5,
-                borderColor: this.colors("blue", 0.5),
-                borderWidth: 3,
+                borderColor: "rgb(43,123,177, 0.5)",
+                borderWidth: 2,
               },
 
               to: {
                 type: "line",
                 xMin: this.selection.to - 0.5,
                 xMax: this.selection.to - 0.5,
-                borderColor: this.colors("blue", 0.5),
-                borderWidth: 3,
+                borderColor: "rgb(43,123,177, 0.5)",
+                borderWidth: 2,
               },
 
               filler: {
@@ -147,7 +179,8 @@ export default {
                 type: "box",
                 xMin: this.selection.from - 0.5,
                 xMax: this.selection.to - 0.5,
-                backgroundColor: this.colors("blue", 0.1),
+                backgroundColor: "rgb(43,123,177, 0.1)",
+                borderWidth: 0,
               },
             },
           },
@@ -185,14 +218,22 @@ export default {
       );
     },
 
-    colors(key, alpha = 1) {
-      let colors = {
-        green: "141,199,141",
-        red: "235,130,130",
-        gray: "200,200,200",
-        blue: "43,123,177",
-      };
-      return "rgba(" + colors[key] + "," + alpha + ")";
+    colors(index, opacity = "ff") {
+      let colors = [
+        "#3366cc",
+        "#dc3912",
+        "#ff9900",
+        "#109618",
+        "#990099",
+        "#0099c6",
+        "#dd4477",
+        "#66aa00",
+        "#b82e2e",
+        "#316395",
+        "#3366cc",
+        "#994499",
+      ];
+      return colors[index] + opacity;
     },
 
     mouseEvent(type, event) {
@@ -264,40 +305,31 @@ export default {
             this.mouseState.catchedLine !== null
           ) {
             //Save new position
-            this.$emit("update:selection", {
-              from:
-                this.mouseState.catchedLine === "from"
-                  ? xVal
-                  : this.selection.from,
-              to:
-                this.mouseState.catchedLine === "to" ? xVal : this.selection.to,
-            });
-            //this.selection[this.mouseState.catchedLine] = xVal;
-
-            //Set new line position
-            this.chartOptions.plugins.annotation.annotations[
-              this.mouseState.catchedLine
-            ].xMin = xVal - 0.5;
-            this.chartOptions.plugins.annotation.annotations[
-              this.mouseState.catchedLine
-            ].xMax = xVal - 0.5;
-
-            //Update filler box
-            this.chartOptions.plugins.annotation.annotations.filler.xMin =
-              this.selection.from - 0.5;
-            this.chartOptions.plugins.annotation.annotations.filler.xMax =
-              this.selection.to - 0.5;
-
-            //Update chart
-            chart.update("none");
+            this.emit(xVal);
           } else if (!this.mouseState.down && catchedLine !== null) {
             this.mouseState.cursor = "cursor-grab";
           } else {
             this.mouseState.cursor = "cursor-default";
           }
-
           break;
       }
+    },
+
+    emit(xVal) {
+      //Set new selection
+      let selection = {
+        from:
+          this.mouseState.catchedLine === "from" ? xVal : this.selection.from,
+        to: this.mouseState.catchedLine === "to" ? xVal : this.selection.to,
+      };
+
+      //revert
+      if (selection.from > selection.to)
+        this.mouseState.catchedLine =
+          this.mouseState.catchedLine === "from" ? "to" : "from";
+
+      //emit
+      this.$emit("update:selection", selection);
     },
   },
 };
