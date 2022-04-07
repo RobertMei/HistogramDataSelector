@@ -15,7 +15,7 @@ export default {
 
   props: ["signals", "selection"],
 
-  emits: ["paddingLeft", "update:selection"],
+  emits: ["update:chartArea", "update:selection"],
 
   data() {
     return {
@@ -39,9 +39,6 @@ export default {
 
   mounted() {
     let initDataset = this.signals[0].histogramOverall;
-    this.min = parseInt(initDataset[0].start);
-    this.max = parseInt(initDataset[initDataset.length - 1].end);
-    this.range = this.max - this.min;
     this.categories = initDataset.length;
     this.init(initDataset);
 
@@ -157,47 +154,6 @@ export default {
         },
       };
 
-      //Set chart options
-      this.chartOptions2 = {
-        responsive: true,
-        maintainAspectRatio: false,
-        normalized: false,
-        layout: {
-          padding: {
-            left: 0,
-            right: 0,
-          },
-        },
-        scales: {
-          x: {
-            type: "linear",
-            min: 0,
-            max: this.categories,
-            ticks: {
-              display: true,
-              stepSize: 10,
-              maxRotation: 90,
-              minRotation: 90,
-
-              callback: function (value, index, ticks) {
-                return this.min + index * this.range;
-              }.bind(this),
-            },
-            grid: {
-              display: true,
-            },
-          },
-          y: {
-            display: false,
-          },
-        },
-        plugins: {
-          legend: {
-            display: false,
-          },
-        },
-      };
-
       //Add event listeners
       setTimeout(
         function () {
@@ -223,8 +179,7 @@ export default {
             }.bind(this)
           );
 
-          let paddingLeft = chart.chartArea.left;
-          this.$emit("paddingLeft", paddingLeft);
+          this.$emit("update:chartArea", chart.chartArea);
         }.bind(this),
         0
       );
