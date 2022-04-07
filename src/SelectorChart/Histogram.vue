@@ -21,7 +21,12 @@ export default {
       default: {
         from: null,
         to: null,
+        from2: null,
+        to2: null,
       },
+    },
+    linked: {
+      default: false,
     },
   },
 
@@ -59,20 +64,24 @@ export default {
   watch: {
     selection(val) {
       //Set new line position
-      this.chartOptions.plugins.annotation.annotations["from"].xMin =
-        val.from - 0.5;
-      this.chartOptions.plugins.annotation.annotations["from"].xMax =
-        val.from - 0.5;
-      this.chartOptions.plugins.annotation.annotations["to"].xMin =
-        val.to - 0.5;
-      this.chartOptions.plugins.annotation.annotations["to"].xMax =
-        val.to - 0.5;
+      let ann = this.chartOptions.plugins.annotation.annotations;
+      ann["from"].xMin = val.from - 0.5;
+      ann["from"].xMax = val.from - 0.5;
+      ann["to"].xMin = val.to - 0.5;
+      ann["to"].xMax = val.to - 0.5;
 
       //Update filler box
-      this.chartOptions.plugins.annotation.annotations.filler.xMin =
-        val.from - 0.5;
-      this.chartOptions.plugins.annotation.annotations.filler.xMax =
-        val.to - 0.5;
+      ann["filler"].xMin = val.from - 0.5;
+      ann["filler"].xMax = val.to - 0.5;
+
+      if (val.hasOwnProperty("from2")) {
+        ann["from2"].xMin = val.from2 - 0.5;
+        ann["from2"].xMax = val.from2 - 0.5;
+        ann["to2"].xMin = val.to2 - 0.5;
+        ann["to2"].xMax = val.to2 - 0.5;
+        ann["filler2"].xMin = val.from2 - 0.5;
+        ann["filler2"].xMax = val.to2 - 0.5;
+      }
 
       //Update chart
       this.$refs[this.id].chartJSState.chart.update("none");
@@ -175,18 +184,43 @@ export default {
               },
 
               filler: {
-                display: true,
                 type: "box",
                 xMin: this.selection.from - 0.5,
                 xMax: this.selection.to - 0.5,
                 backgroundColor: "rgb(43,123,177, 0.1)",
                 borderWidth: 0,
               },
+
+              from2: {
+                display: this.selection.hasOwnProperty("from2"),
+                type: "line",
+                xMin: this.selection.from2 - 0.5,
+                xMax: this.selection.from2 - 0.5,
+                borderColor: "rgb(232,134,111, 0.5)",
+                borderWidth: 2,
+              },
+
+              to2: {
+                display: this.selection.hasOwnProperty("from2"),
+                type: "line",
+                xMin: this.selection.to2 - 0.5,
+                xMax: this.selection.to2 - 0.5,
+                borderColor: "rgb(232,134,111, 0.5)",
+                borderWidth: 2,
+              },
+
+              filler2: {
+                display: this.selection.hasOwnProperty("from2"),
+                type: "box",
+                xMin: this.selection.from2 - 0.5,
+                xMax: this.selection.to2 - 0.5,
+                backgroundColor: "rgb(232,134,111, 0.1)",
+                borderWidth: 0,
+              },
             },
           },
         },
       };
-
       //Add event listeners
       setTimeout(
         function () {
@@ -274,6 +308,16 @@ export default {
         xVal <= this.selection.to + catchRadius
       )
         catchedLine = "to";
+      else if (
+        xVal >= this.selection.from2 - catchRadius &&
+        xVal <= this.selection.from2 + catchRadius
+      )
+        catchedLine = "from2";
+      else if (
+        xVal >= this.selection.to2 - catchRadius &&
+        xVal <= this.selection.to2 + catchRadius
+      )
+        catchedLine = "to2";
 
       //Decide
       switch (type) {
@@ -321,12 +365,27 @@ export default {
         from:
           this.mouseState.catchedLine === "from" ? xVal : this.selection.from,
         to: this.mouseState.catchedLine === "to" ? xVal : this.selection.to,
+        from2:
+          this.mouseState.catchedLine === "from2" ? xVal : this.selection.from2,
+        to2: this.mouseState.catchedLine === "to2" ? xVal : this.selection.to2,
       };
 
       //revert
       if (selection.from > selection.to)
         this.mouseState.catchedLine =
           this.mouseState.catchedLine === "from" ? "to" : "from";
+
+      if (selection.from2 > selection.to2)
+        this.mouseState.catchedLine =
+          this.mouseState.catchedLine === "from2" ? "to2" : "from2";
+
+      //Linked
+      if (this.linked) {
+        if (this.mouseState.catchedLine === "to")
+          selection.from2 = selection.to;
+        if (this.mouseState.catchedLine === "from2")
+          selection.to = selection.from2;
+      }
 
       //emit
       this.$emit("update:selection", selection);

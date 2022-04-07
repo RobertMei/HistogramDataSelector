@@ -2,6 +2,7 @@
   <div class="w-full pr-10" style="height: 300px">
     <histogram
       :signals="signals"
+      :linked="true"
       @update:chartArea="chartArea = $event"
       v-model:selection="selection"
     />
@@ -57,7 +58,7 @@ export default {
   data() {
     return {
       chartArea: null,
-      selection: { from: 0, to: 80 },
+      selection: { from: 0, to: 80, from2: 80, to2: 100 },
       min: null,
       max: null,
     };
