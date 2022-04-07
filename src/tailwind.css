@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .sorting-inactive {
+        @apply text-gray-300;
+    }
+
+    .sorting-active {
+        @apply text-gray-600;
+    }
+}
+
+@layer base {
+    h1 {
+        @apply text-2xl;
+        @apply font-semibold;
+    }
+
+    h2 {
+        @apply text-xl;
+        @apply font-semibold;
+    }
+
+    h3 {
+        @apply text-lg;
+        @apply font-semibold;
+    }
+}
