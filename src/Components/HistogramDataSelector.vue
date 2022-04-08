@@ -1,22 +1,71 @@
 <template>
-  <vue3-chart-js
-    v-if="chartData !== null"
-    :ref="id"
-    :type="'bar'"
-    :data="chartData"
-    :options="chartOptions"
-    :class="[mouseState.cursor]"
-  />
+  <div class="w-full pr-10 overflow-hidden">
+    <!--Chart-->
+    <div :style="[chartHeight]">
+      <vue3-chart-js
+        v-if="chartData !== null"
+        :ref="id"
+        :type="'bar'"
+        :data="chartData"
+        :options="chartOptions"
+        :class="[mouseState.cursor]"
+      />
+    </div>
+
+    <!--Scale-->
+    <div class="-mt-2.5" :style="[paddingLeft, paddingRight]">
+      <!--Ticks-->
+      <div class="flex justify-between relative h-2">
+        <div
+          v-for="index in 10"
+          :key="index"
+          class="border-l w-0 border-gray-300 relative"
+        >
+          <!--Label-->
+          <div
+            class="
+              absolute
+              origin-bottom
+              top-3
+              left-0
+              transform
+              -translate-x-1/2
+              text-xs text-center
+              font-semibold
+              whitespace-nowrap
+              text-gray-500
+            "
+          >
+            {{ getLabel(index)[0] }}
+            <br />
+            {{ getLabel(index)[1] }}
+          </div>
+        </div>
+      </div>
+
+      <!--Title-->
+      <div class="text-center text-sm font-bold mt-12 text-gray-600">
+        {{ xTitle }}
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
+import moment from "moment";
+
 export default {
   components: {},
 
   props: {
+    chartHeight: {
+      default: "height: 250px",
+    },
+
     signals: {
       default: null,
     },
+
     selection: {
       default: {
         from: null,
@@ -25,24 +74,32 @@ export default {
         to2: null,
       },
     },
+
     linked: {
       default: false,
     },
+
+    xTitle: {
+      default: "time",
+    },
+
+    unit: {
+      default: "datetime", //ms, datetime, date
+    },
   },
 
-  emits: ["update:chartArea", "update:selection"],
+  emits: ["update:selection"],
 
   data() {
     return {
       id: "aesg1",
       chartOptions: null,
       chartData: null,
+      chartArea: null,
       chart: null,
       categories: null,
       min: null,
       max: null,
-      range: null,
-      chartPaddingLeft: null,
       mouseState: {
         catchedLine: null,
         down: false,
@@ -54,11 +111,24 @@ export default {
 
   mounted() {
     let initDataset = this.signals[0].histogramOverall;
+    this.min = parseInt(initDataset[0].start);
+    this.max = parseInt(initDataset[initDataset.length - 1].end);
     this.categories = initDataset.length;
     this.init(initDataset);
     this.signals.forEach((signal) => {
       this.addSignal(signal);
     });
+  },
+
+  computed: {
+    paddingLeft() {
+      if (this.chartArea === null) return "padding-left: 0px;";
+      return "padding-left: " + this.chartArea.left + "px;";
+    },
+
+    paddingRight() {
+      return "padding-right: 6px;";
+    },
   },
 
   watch: {
@@ -246,7 +316,7 @@ export default {
             }.bind(this)
           );
 
-          this.$emit("update:chartArea", chart.chartArea);
+          this.chartArea = chart.chartArea;
         }.bind(this),
         0
       );
@@ -389,6 +459,23 @@ export default {
 
       //emit
       this.$emit("update:selection", selection);
+    },
+
+    //Create labels
+    getLabel(index) {
+      let range = this.max - this.min;
+      let ms = this.min + (index - 1) * range;
+      let date = moment(ms);
+
+      switch (this.unit) {
+        case "date":
+          return [date.format("YYYY-MM-DD"), null];
+
+        case "datetime":
+          return [date.format("YYYY-MM-DD"), date.format("HH:mm:ss")];
+      }
+
+      return [ms, null];
     },
   },
 };
